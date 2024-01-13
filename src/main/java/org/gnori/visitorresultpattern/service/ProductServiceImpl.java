@@ -1,8 +1,9 @@
 package org.gnori.visitorresultpattern.service;
 
+import org.gnori.visitorresultpattern.common.Result;
 import org.gnori.visitorresultpattern.model.Product;
-import org.gnori.visitorresultpattern.operation.product.query.FindProductByIdQuery;
-import org.gnori.visitorresultpattern.operation.product.result.FindProductResult;
+import org.gnori.visitorresultpattern.operation.query.FindProductByIdQuery;
+import org.gnori.visitorresultpattern.operation.failure.FindProduceFailure;
 import org.springframework.stereotype.Service;
 
 import java.util.Optional;
@@ -14,11 +15,11 @@ public class ProductServiceImpl implements ProductService {
     private final Function<Long, Optional<Product>> findProductByIdMock = createFindProductByIdMock();
 
     @Override
-    public FindProductResult findProductById(FindProductByIdQuery query) {
+    public Result<Product, FindProduceFailure> findProductById(FindProductByIdQuery query) {
 
         return findProductByIdMock.apply(query.id())
-                .<FindProductResult>map(FindProductResult.Success::of)
-                .orElse(FindProductResult.NotFound.INSTANCE);
+                .map(Result::<Product, FindProduceFailure>success)
+                .orElse(Result.failure(FindProduceFailure.NOT_FOUND));
     }
 
     private Function<Long, Optional<Product>> createFindProductByIdMock() {
