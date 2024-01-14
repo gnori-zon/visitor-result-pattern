@@ -34,8 +34,18 @@ public interface Result<S, F> {
     <NS> Result<NS, F> mapSuccess(Function<S, NS> mutation);
     <NF> Result<S, NF> mapFailure(Function<F, NF> mutation);
 
-    Result<S,F> doIfSuccess(Consumer<S> action);
-    Result<S,F> doIfFailure(Consumer<F> action);
+    interface FlatMapper<S, F, NS, NF> {
+        Result<NS, NF> flatMapSuccess(Success<S, F> success);
+        Result<NS, NF> flatMapFailure(Failure<S, F> failure);
+    }
+
+    <NS, NF> Result<NS, NF> flatMap(FlatMapper<S, F, NS, NF> flatMapper);
+    <NS, NF> Result<NS, NF> flatMap(Function<S, Result<NS, NF>> successMutation, Function<F, Result<NS, NF>> failureMutation);
+    <NS> Result<NS, F> flatMapSuccess(Function<S, Result<NS, F>> mutation);
+    <NF> Result<S, NF> flatMapFailure(Function<F, Result<S, NF>> mutation);
+
+    Result<S, F> doIfSuccess(Consumer<S> action);
+    Result<S, F> doIfFailure(Consumer<F> action);
 
     @Value(staticConstructor = "of")
     @EqualsAndHashCode(callSuper = false, of = "value")
@@ -82,6 +92,26 @@ public interface Result<S, F> {
         public <NF> Result<S, NF> mapFailure(Function<F, NF> mutation) {
             return Result.success(this.value);
         }
+
+        @Override
+        public <NS, NF> Result<NS, NF> flatMap(FlatMapper<S, F, NS, NF> flatMapper) {
+            return flatMapper.flatMapSuccess(this);
+        }
+
+        @Override
+        public <NS, NF> Result<NS, NF> flatMap(Function<S, Result<NS, NF>> successMutation, Function<F, Result<NS, NF>> failureMutation) {
+            return successMutation.apply(this.value());
+        }
+
+        @Override
+        public <NS> Result<NS, F> flatMapSuccess(Function<S, Result<NS, F>> mutation) {
+            return mutation.apply(this.value());
+        }
+
+        @Override
+        public <NF> Result<S, NF> flatMapFailure(Function<F, Result<S, NF>> mutation) {
+            return Result.success(this.value());
+        }
     }
 
     @Value(staticConstructor = "of")
@@ -98,6 +128,7 @@ public interface Result<S, F> {
             action.accept(this.value());
             return this;
         }
+
         @Override
         public <T> T fold(Folder<T, S, F> folder) {
             return folder.foldFailure(this);
@@ -126,6 +157,26 @@ public interface Result<S, F> {
         @Override
         public <NF> Result<S, NF> mapFailure(Function<F, NF> mutation) {
             return Result.failure(mutation.apply(this.value()));
+        }
+
+        @Override
+        public <NS, NF> Result<NS, NF> flatMap(FlatMapper<S, F, NS, NF> flatMapper) {
+            return flatMapper.flatMapFailure(this);
+        }
+
+        @Override
+        public <NS, NF> Result<NS, NF> flatMap(Function<S, Result<NS, NF>> successMutation, Function<F, Result<NS, NF>> failureMutation) {
+            return failureMutation.apply(this.value());
+        }
+
+        @Override
+        public <NS> Result<NS, F> flatMapSuccess(Function<S, Result<NS, F>> mutation) {
+            return Result.failure(this.value());
+        }
+
+        @Override
+        public <NF> Result<S, NF> flatMapFailure(Function<F, Result<S, NF>> mutation) {
+            return mutation.apply(this.value);
         }
     }
 }
