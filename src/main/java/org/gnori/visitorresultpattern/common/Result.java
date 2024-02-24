@@ -11,7 +11,6 @@ public interface Result<S, F> {
     static <S, F> Result<S, F> success(S s) {
         return Success.of(s);
     }
-
     static <S, F> Result<S, F> failure(F f) {
         return Failure.of(f);
     }
@@ -44,12 +43,22 @@ public interface Result<S, F> {
     <NS> Result<NS, F> flatMapSuccess(Function<S, Result<NS, F>> mutation);
     <NF> Result<S, NF> flatMapFailure(Function<F, Result<S, NF>> mutation);
 
-    Result<S, F> doIfSuccess(Consumer<S> action);
-    Result<S, F> doIfFailure(Consumer<F> action);
 
-    @Value(staticConstructor = "of")
-    @EqualsAndHashCode(callSuper = false, of = "value")
+    Result<S,F> doAnyway(Runnable action);
+    Result<S,F> doIfSuccess(Consumer<S> action);
+    Result<S,F> doIfFailure(Consumer<F> action);
+
     record Success<S, F>(S value) implements Result<S, F> {
+
+        public static <S, F> Success<S, F> of(S value) {
+            return new Success<>(value);
+        }
+
+        @Override
+        public Result<S, F> doAnyway(Runnable action) {
+            action.run();
+            return this;
+        }
 
         @Override
         public Result<S, F> doIfSuccess(Consumer<S> action) {
@@ -114,9 +123,17 @@ public interface Result<S, F> {
         }
     }
 
-    @Value(staticConstructor = "of")
-    @EqualsAndHashCode(callSuper = false, of = "value")
     record Failure<S, F>(F value) implements Result<S, F> {
+
+        public static <S, F> Failure<S, F> of(F value) {
+            return new Failure<>(value);
+        }
+
+        @Override
+        public Result<S, F> doAnyway(Runnable action) {
+            action.run();
+            return this;
+        }
 
         @Override
         public Result<S, F> doIfSuccess(Consumer<S> action) {
@@ -128,7 +145,6 @@ public interface Result<S, F> {
             action.accept(this.value());
             return this;
         }
-
         @Override
         public <T> T fold(Folder<T, S, F> folder) {
             return folder.foldFailure(this);
